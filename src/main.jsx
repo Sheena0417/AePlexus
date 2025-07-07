@@ -1,4 +1,3 @@
-// src/main.jsx
-import { createUI } from "./ui.js";
+import { connectPlexusByPosition } from "./connectPlexus.js";
 
-createUI();
+connectPlexusByPosition();
