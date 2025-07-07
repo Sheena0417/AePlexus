@@ -5,13 +5,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c",
-    "watch": "rollup -c --watch"
-},
+    "watch": "CHOKIDAR_USEPOLLING=true rollup -c --watch"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "rollup": "^4.44.2"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0"
   }
 }
