@@ -49,7 +49,7 @@ export function addControlEffects(layer) {
     fx.property("Slider").setValue(25);
   });
   addEffectIfMissing("Wave Divisions", "ADBE Slider Control", function (fx) {
-    fx.property("Slider").setValue(10);
+    fx.property("Slider").setValue(20);
   });
 
   addEffectIfMissing("Wave Direction", "ADBE Angle Control", function (fx) {
