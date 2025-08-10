@@ -56,9 +56,6 @@ export function addControlEffects(layer) {
     fx.property("Angle").setValue(0);
   });
 
-  addEffectIfMissing("Phase/Smoothness", "ADBE Slider Control", function (fx) {
-    fx.property("Slider").setValue(50);
-  });
   addEffectIfMissing("Intensity", "ADBE Slider Control", function (fx) {
     fx.property("Slider").setValue(50);
   });

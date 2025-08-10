@@ -31,8 +31,8 @@ function buildWaveExpression(layerAName, layerBName, controlLayerName, lineId) {
     "    var waveFreq = safeGetEffect(ctl,'Wave Frequency','Slider',50)/25;\n" +
     "    var waveSpeed = safeGetEffect(ctl,'Wave Speed','Slider',25)/25;\n" +
     "    var waveDir = safeGetEffect(ctl,'Wave Direction','Angle',0)*Math.PI/180;\n" +
-    "    var numDiv = Math.max(3, Math.min(20, Math.round(safeGetEffect(ctl,'Wave Divisions','Slider',10))));\n" +
-    "    var phaseSmooth = safeGetEffect(ctl,'Phase/Smoothness','Slider',50)/100;\n" +
+    "    var numDiv = Math.max(3, Math.min(20, Math.round(safeGetEffect(ctl,'Wave Divisions','Slider',20))));\n" +
+    "    var phaseSmooth = 0.6;\n" +
     "    var randomSeed = safeGetEffect(ctl,'Random Seed','Slider',1);\n" +
     "    var intensity = safeGetEffect(ctl,'Intensity','Slider',50)/100;\n" +
     "    var pts=[], inT=[], outT=[]; var t=time*waveSpeed; var dir=normalize(p2-p1);\n" +
