@@ -1,5 +1,5 @@
 // import 呼び出し先
-import { connectPlexusByPosition } from "./connectPlexus.js";
+import { connectPlexus } from "./connectPlexus.js";
 import { connectOrigin } from "./connectOrigin.js";
 import { loadIcon } from "./utils.js";
 
@@ -42,9 +42,7 @@ export function createUI() {
   }
 
   // ボタンのイベント
-  plexusBtn.onClick = function () {
-    connectPlexusByPosition();
-  };
+  plexusBtn.onClick = function () { connectPlexus(); };
 
   originBtn.onClick = function () {
     connectOrigin();
