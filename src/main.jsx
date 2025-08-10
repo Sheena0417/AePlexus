@@ -1,3 +1,3 @@
-import { connectPlexusByPosition } from "./connectPlexus.js";
+import { createUI } from "./ui.js";
 
-connectPlexusByPosition();
+createUI();
