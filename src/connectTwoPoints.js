@@ -10,15 +10,18 @@ function addTwoPointsControlEffects(layer) {
     }
   }
 
-  // Layer Control 1: Start
-  addEffectIfMissing("Start", "ADBE Layer Control", function (fx) {
-    // デフォルトでは何も選択されていない状態
-  });
+  // Layer Control を最初に追加（最上位に表示）
+  // Layer Control 1: Start (直接追加方式)
+  if (!layer.effect("Start")) {
+    var startFx = layer.Effects.addProperty("ADBE Layer Control");
+    startFx.name = "Start";
+  }
 
-  // Layer Control 2: End  
-  addEffectIfMissing("End", "ADBE Layer Control", function (fx) {
-    // デフォルトでは何も選択されていない状態
-  });
+  // Layer Control 2: End (直接追加方式)
+  if (!layer.effect("End")) {
+    var endFx = layer.Effects.addProperty("ADBE Layer Control");
+    endFx.name = "End";
+  }
 
   // 既存のコントロール群も追加
   addEffectIfMissing("Threshold", "ADBE Slider Control", function (fx) {
@@ -296,7 +299,12 @@ export function connectTwoPoints() {
   var comp = app.project.activeItem;
   if (!(comp && comp instanceof CompItem)) return;
 
-  // レイヤー選択は必須ではない（Layer Controlで後から指定）
+  // 選択レイヤーを事前に保存（レイヤー作成で選択が変わる前に）
+  var selectedLayers = comp.selectedLayers;
+  var savedLayers = [];
+  for (var i = 0; i < selectedLayers.length; i++) {
+    savedLayers.push(selectedLayers[i]);
+  }
   
   app.beginUndoGroup("Connect Two Points with Wave");
 
@@ -330,6 +338,24 @@ export function connectTwoPoints() {
 
   // コントロールエフェクトを追加
   addTwoPointsControlEffects(line);
+
+  // 保存された選択レイヤーがあれば自動でStart/Endに設定
+  if (savedLayers && savedLayers.length >= 2) {
+    try {
+      // エフェクト追加後に名前で再取得（重要：オブジェクト参照を更新）
+      var startFx = line.effect("Start");
+      var endFx = line.effect("End");
+      
+      if (startFx && startFx.property(1)) {
+        startFx.property(1).setValue(savedLayers[0].index);
+      }
+      if (endFx && endFx.property(1)) {
+        endFx.property(1).setValue(savedLayers[1].index);
+      }
+    } catch(e) {
+      // エラーが出ても続行（手動設定可能）
+    }
+  }
 
   // ▼ ドロップダウンの項目＆改名を最大限試み、index を取得
   var waved = ensureWaveTypeDropdown(line);
