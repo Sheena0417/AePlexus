@@ -3,42 +3,139 @@ import { addControlEffects } from "./addControlEffects.js";
 
 function escName(n) { return n.replace(/\\/g, "\\\\").replace(/'/g, "\\'"); }
 
+// ▼ 追加：コントロールレイヤーに Wave Type を強制整備
+function ensureWaveTypeDropdown(controlLayer) {
+  var parade = controlLayer.property("ADBE Effect Parade");
+  if (!parade) return;
+
+  // 1) 既に "Wave Type" があればそれを使う
+  var dd = parade.property("Wave Type");
+
+  // 2) なければ matchName でドロップダウンを探す
+  if (!dd) {
+    for (var i = 1; i <= parade.numProperties; i++) {
+      var fx = parade.property(i);
+      if (fx && fx.matchName === "ADBE Dropdown Control") {
+        dd = fx;
+        break;
+      }
+    }
+  }
+
+  // 3) それでも無ければ新規作成
+  if (!dd) {
+    dd = parade.addProperty("ADBE Dropdown Control");
+  }
+
+  // 4) 項目を設定（戻りは Menu 子プロパティ）
+  //    setPropertyParameters は Dropdown の子(=property(1))に対して行う
+  var menu = dd.property(1);
+  if (menu && menu.setPropertyParameters) {
+    menu.setPropertyParameters(["sin", "random"]);
+  }
+
+  // 5) 親エフェクト名を "Wave Type" に強制（ロケールに依存しない）
+  //    一部環境で dd.name = ... が効かないケースに備えて、親を辿って改名
+  try {
+    dd.name = "Wave Type";
+  } catch (e) {}
+  try {
+    if (menu && menu.propertyGroup) {
+      menu.propertyGroup(1).name = "Wave Type";
+    }
+  } catch (e) {}
+}
+
 function buildWaveExpression(layerAName, layerBName, controlLayerName, lineId) {
   return (
-    "try {\n" +
-    "var A = thisComp.layer('" + escName(layerAName) + "');\n" +
-    "var B = thisComp.layer('" + escName(layerBName) + "');\n" +
-    "var ctl = thisComp.layer('" + escName(controlLayerName) + "');\n" +
-    "function safeGetEffect(layer, effectName, propertyName, def) {\n" +
-    "  try { var effect = layer.effect(effectName); if (effect) {\n" +
-    "    var prop; if (propertyName==='Checkbox') prop=effect('Checkbox');\n" +
-    "    else if (propertyName==='Angle') prop=effect('Angle');\n" +
-    "    else if (propertyName==='Color') prop=effect('Color');\n" +
-    "    else if (propertyName==='Popup' || propertyName==='Menu') {\n" +
-    "      try { return effect(1).value; } catch(e1) { try { return effect.property(1).value; } catch(e2) { try { return effect.property('Menu').value; } catch(e3) { try { return effect.property('Popup').value; } catch(e4) {} } } }\n" +
-    "    } else prop=effect('Slider');\n" +
-    "    if (prop && prop.value!==undefined) return prop.value;\n" +
-    "  }} catch(e) {} return def;}\n" +
-    "var threshold = safeGetEffect(ctl,'Threshold','Slider',300);\n" +
-    "var enableWave = safeGetEffect(ctl,'Enable Wave','Checkbox',0);\n" +
-    "var p1 = thisLayer.fromComp(A.toComp(A.anchorPoint));\n" +
-    "var p2 = thisLayer.fromComp(B.toComp(B.anchorPoint));\n" +
-    "var d = length(p1,p2);\n" +
-    "if (d <= threshold) {\n" +
-    "  if (enableWave==1) {\n" +
-    "    var waveType=1; try { waveType = ctl.effect('Wave Type').property(1).value; } catch(e) {}\n" +
-    "    var waveAmp = safeGetEffect(ctl,'Wave Amplitude','Slider',25)*2;\n" +
-    "    var waveFreq = safeGetEffect(ctl,'Wave Frequency','Slider',50)/25;\n" +
-    "    var waveSpeed = safeGetEffect(ctl,'Wave Speed','Slider',25)/25;\n" +
-    "    var waveDir = safeGetEffect(ctl,'Wave Direction','Angle',0)*Math.PI/180;\n" +
-    "    var numDiv = Math.max(3, Math.min(20, Math.round(safeGetEffect(ctl,'Wave Divisions','Slider',20))));\n" +
-    "    var phaseSmooth = 0.6;\n" +
-    "    var randomSeed = safeGetEffect(ctl,'Random Seed','Slider',1);\n" +
-    "    var intensity = safeGetEffect(ctl,'Intensity','Slider',50)/100;\n" +
-    "    var pts=[], inT=[], outT=[]; var t=time*waveSpeed; var dir=normalize(p2-p1);\n" +
-    "    var basePerp=[-dir[1],dir[0]]; var perp=[basePerp[0]*Math.cos(waveDir)-basePerp[1]*Math.sin(waveDir), basePerp[0]*Math.sin(waveDir)+basePerp[1]*Math.cos(waveDir)];\n" +
-    "    var segLength=d/numDiv; var lineId=" + lineId + ";\n" +
-    "    for (var k=0;k<=numDiv;k++){ var ratio=k/numDiv; var base=p1+(p2-p1)*ratio; var offset=0; var envelope=Math.sin(ratio*Math.PI); envelope=Math.pow(envelope, 2 - intensity*1.5); if (k!==0&&k!==numDiv){ var phase=(t+ratio*waveFreq+lineId*0.1)*Math.PI*2; var wave=0; if (waveType==1){ var phaseOffset=phaseSmooth*Math.PI*2; wave=Math.sin(phase+phaseOffset);} else { var noise=0, amplitude=1, maxV=0, freq=waveFreq*0.5; var oct=Math.floor(1+intensity*4); var persist=0.5+phaseSmooth*0.3; for (var o=0;o<oct;o++){ var sample=(ratio+t*waveSpeed)*freq+randomSeed*100+lineId; var x0=Math.floor(sample), x1=x0+1; var frac=sample-x0; var ease=frac*frac*frac*(frac*(frac*6-15)+10); var h0=Math.sin(x0*12.9898+o*78.233+randomSeed*54.321)*43758.5453; var h1=Math.sin(x1*12.9898+o*78.233+randomSeed*54.321)*43758.5453; var v0=(h0-Math.floor(h0))*2-1; var v1=(h1-Math.floor(h1))*2-1; var val=v0*(1-ease)+v1*ease; noise+=val*amplitude; maxV+=amplitude; amplitude*=persist; freq*=2;} wave=noise/maxV; } offset=wave*waveAmp*envelope;} var pt=base+perp*offset; pts.push(pt); if (k===0||k===numDiv){ inT.push([0,0]); outT.push([0,0]); } else { var hl=segLength*0.33; var smooth = (ctl.effect('Smooth Curves') ? safeGetEffect(ctl,'Smooth Curves','Checkbox',1) : 1); var baseH = dir*hl; if (waveType==1){ var deriv=Math.cos(phase+phaseSmooth*Math.PI*2)*waveFreq*waveAmp*envelope; var bend = perp * (deriv * hl / segLength); var handle = (baseH + bend) * (0.5 + phaseSmooth*0.5) * (smooth?1:0.6); inT.push(handle * -1); outT.push(handle); } else { var handle = baseH * 0.3; inT.push(handle * -1); outT.push(handle); } } } createPath(pts,inT,outT,false); } else { createPath([p1,p2],[[0,0],[0,0]],[[0,0],[0,0]],false);} } else { createPath([p1],[[0,0]],[[0,0]],false);} } catch(e){ var A=thisComp.layer('" + escName(layerAName) + "'); var B=thisComp.layer('" + escName(layerBName) + "'); var p1=thisLayer.fromComp(A.toComp(A.anchorPoint)); var p2=thisLayer.fromComp(B.toComp(B.anchorPoint)); createPath([p1,p2],[[0,0],[0,0]],[[0,0],[0,0]],false);}"
+"try {\n"+
+"var A = thisComp.layer('"+escName(layerAName)+"');\n"+
+"var B = thisComp.layer('"+escName(layerBName)+"');\n"+
+"var ctl = thisComp.layer('"+escName(controlLayerName)+"');\n"+
+
+// --- 安全取得ユーティリティ（ロケール非依存） ---
+"function getSlider(layer, name, def){ try{ return layer.effect(name)('Slider').value; }catch(e){ return def; } }\n"+
+"function getCheckbox(layer, name, def){ try{ return layer.effect(name)('Checkbox').value; }catch(e){ return def; } }\n"+
+"function getAngle(layer, name, def){ try{ return layer.effect(name)('Angle').value; }catch(e){ return def; } }\n"+
+"function getDropdown(layer, name, def){ try{ return layer.effect(name)(1).value; }catch(e){ return def; } }\n"+
+
+"var threshold   = getSlider(ctl,'Threshold',300);\n"+
+"var enableWave  = getCheckbox(ctl,'Enable Wave',0);\n"+
+"var p1 = thisLayer.fromComp(A.toComp(A.anchorPoint));\n"+
+"var p2 = thisLayer.fromComp(B.toComp(B.anchorPoint));\n"+
+"var d  = length(p1,p2);\n"+
+
+"if (d <= threshold) {\n"+
+"  if (enableWave==1) {\n"+
+"    var waveType   = Math.round(getDropdown(ctl,'Wave Type',1)); // 1=sin, 2=random\n"+
+"    var waveAmp    = getSlider(ctl,'Wave Amplitude',25)*2;\n"+
+"    var waveFreq   = getSlider(ctl,'Wave Frequency',50)/25;\n"+
+"    var waveSpeed  = getSlider(ctl,'Wave Speed',25)/25;\n"+
+"    var waveDir    = getAngle(ctl,'Wave Direction',0)*Math.PI/180;\n"+
+"    var numDiv     = Math.max(3, Math.min(20, Math.round(getSlider(ctl,'Wave Divisions',20))));\n"+
+"    var phaseSmooth= 0.6;\n"+
+"    var randomSeed = getSlider(ctl,'Random Seed',1);\n"+
+"    var intensity  = getSlider(ctl,'Intensity',50)/100;\n"+
+"    var smoothOn   = getCheckbox(ctl,'Smooth Curves',1);\n"+
+
+"    var pts=[], inT=[], outT=[]; var t=time*waveSpeed; var dir=normalize(p2-p1);\n"+
+"    var basePerp=[-dir[1],dir[0]]; var perp=[basePerp[0]*Math.cos(waveDir)-basePerp[1]*Math.sin(waveDir), basePerp[0]*Math.sin(waveDir)+basePerp[1]*Math.cos(waveDir)];\n"+
+"    var segLength=d/numDiv; var lineId="+lineId+";\n"+
+
+// --- ノイズユーティリティ ---
+"    function smoothStep(u){ return u*u*u*(u*(u*6-15)+10); }\n"+
+"    function hash(i,o){ var h=Math.sin(i*12.9898+o*78.233+randomSeed*54.321)*43758.5453; return (h-Math.floor(h))*2-1; }\n"+
+"    function noise1D(x,oct){ var x0=Math.floor(x), x1=x0+1; var f=x-x0; var v0=hash(x0+lineId*17,oct), v1=hash(x1+lineId*17,oct); var u=smoothStep(f); return v0*(1-u)+v1*u; }\n"+
+"    function fbm(x,oct,persist){ var sum=0,amp=1,n=0,freq=1; for (var o=0;o<oct;o++){ sum+=noise1D(x*freq,o)*amp; n+=amp; amp*=persist; freq*=2; } return sum/Math.max(1e-6,n); }\n"+
+
+"    for (var k=0;k<=numDiv;k++){\n"+
+"      var ratio=k/numDiv; var base=p1+(p2-p1)*ratio; var envelope=Math.sin(ratio*Math.PI); envelope=Math.pow(envelope, 2 - intensity*1.5);\n"+
+"      var offset=0;\n"+
+"      if (k!==0 && k!==numDiv){\n"+
+"        if (waveType==1){\n"+
+// --- sin 波（本体） ---
+"          var phase=(t+ratio*waveFreq+lineId*0.1)*Math.PI*2 + phaseSmooth*Math.PI*2;\n"+
+"          offset = Math.sin(phase) * waveAmp * envelope;\n"+
+"        } else {\n"+
+// --- Perlin風 fBm 波 ---
+"          var oct = Math.floor(1 + intensity*4);\n"+
+"          var persist = 0.5 + phaseSmooth*0.3;\n"+
+"          var freq = waveFreq*0.5;\n"+
+"          var sample=(ratio + t*waveSpeed)*freq + lineId;\n"+
+"          offset = fbm(sample, oct, persist) * waveAmp * envelope;\n"+
+"        }\n"+
+"      }\n"+
+
+"      var pt=base+perp*offset; pts.push(pt);\n"+
+
+"      if (k===0 || k===numDiv){ inT.push([0,0]); outT.push([0,0]); }\n"+
+"      else {\n"+
+"        var hl=segLength*0.33; var baseH=dir*hl; var handle;\n"+
+"        if (waveType==1){\n"+
+// --- sin の傾き：数値微分（エンベロープ込み） ---
+"          var dr=1/numDiv; var r0=Math.max(0, ratio-dr), r1=Math.min(1, ratio+dr);\n"+
+"          function sinVal(r){ var ph=(t+r*waveFreq+lineId*0.1)*Math.PI*2 + phaseSmooth*Math.PI*2; var env=Math.sin(r*Math.PI); return Math.sin(ph)*waveAmp*env; }\n"+
+"          var y0=sinVal(r0), y1=sinVal(r1); var dx=(r1-r0)*d; var slope=(y1-y0)/Math.max(1e-6,dx);\n"+
+"          var bend=perp*(slope*hl); handle=(baseH + bend) * (0.5 + phaseSmooth*0.5);\n"+
+"        } else {\n"+
+"          handle = baseH * 0.3;\n"+
+"        }\n"+
+"        handle *= (smoothOn?1:0.6);\n"+
+"        inT.push(handle * -1); outT.push(handle);\n"+
+"      }\n"+
+"    }\n"+
+"    createPath(pts,inT,outT,false);\n"+
+"  } else {\n"+
+"    createPath([p1,p2],[[0,0],[0,0]],[[0,0],[0,0]],false);\n"+
+"  }\n"+
+"} else {\n"+
+"  createPath([p1],[[0,0]],[[0,0]],false);\n"+
+"}\n"+
+"} catch(e){\n"+
+"  var A=thisComp.layer('"+escName(layerAName)+"'); var B=thisComp.layer('"+escName(layerBName)+"');\n"+
+"  var p1=thisLayer.fromComp(A.toComp(A.anchorPoint)); var p2=thisLayer.fromComp(B.toComp(B.anchorPoint));\n"+
+"  createPath([p1,p2],[[0,0],[0,0]],[[0,0],[0,0]],false);\n"+
+"}"
   );
 }
 
@@ -56,6 +153,9 @@ export function connectPlexus() {
 
   var controlLayer = getOrCreateControlLayer(comp, "Control_Plexus");
   addControlEffects(controlLayer);
+
+  // ▼ 追加：ドロップダウンの項目と名称を強制整備（ここが肝）
+  ensureWaveTypeDropdown(controlLayer);
 
   var template = comp.layers.addShape();
   template.name = "PlexusTemplate";
