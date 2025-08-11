@@ -3,15 +3,9 @@ export function getOrCreateControlLayer(comp, name) {
   var controlLayer = comp.layer(controlName);
 
   if (!controlLayer) {
-    controlLayer = comp.layers.addSolid(
-      [0, 0, 0],
-      controlName,
-      comp.width,
-      comp.height,
-      comp.pixelAspect,
-      comp.duration
-    );
-    controlLayer.adjustmentLayer = true;
+    // シェイプレイヤーとして作成
+    controlLayer = comp.layers.addShape();
+    controlLayer.name = controlName;
     controlLayer.moveToBeginning();
     // 有効のままにして、描画には影響しないようにガイドレイヤー化
     controlLayer.enabled = true;

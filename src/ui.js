@@ -1,6 +1,7 @@
 // import 呼び出し先
 import { connectPlexus } from "./connectPlexus.js";
 import { connectOrigin } from "./connectOrigin.js";
+import { connectTwoPoints } from "./connectTwoPoints.js";
 import { loadIcon } from "./utils.js";
 
 export function createUI() {
@@ -23,6 +24,7 @@ export function createUI() {
   // アイコン読み込み（存在しなければ null になり、テキストボタンにフォールバック）
   var plexusImg = loadIcon("icon_plexus.png");
   var originImg = loadIcon("icon_origin.png");
+  var twoPointsImg = loadIcon("icon_TwoPoints.png");
 
   var plexusBtn = plexusImg
     ? row.add("iconbutton", undefined, plexusImg, { style: "toolbutton" })
@@ -32,6 +34,10 @@ export function createUI() {
     ? row.add("iconbutton", undefined, originImg, { style: "toolbutton" })
     : row.add("button", undefined, "Connect from Origin");
 
+  var twoPointsBtn = twoPointsImg
+    ? row.add("iconbutton", undefined, twoPointsImg, { style: "toolbutton" })
+    : row.add("button", undefined, "Two Points");
+
   if (plexusImg) {
     plexusBtn.size = [28, 28];
     plexusBtn.helpTip = "Plexus Mode";
@@ -40,12 +46,20 @@ export function createUI() {
     originBtn.size = [28, 28];
     originBtn.helpTip = "Connect from Origin";
   }
+  if (twoPointsImg) {
+    twoPointsBtn.size = [28, 28];
+    twoPointsBtn.helpTip = "Connect Two Points";
+  }
 
   // ボタンのイベント
   plexusBtn.onClick = function () { connectPlexus(); };
 
   originBtn.onClick = function () {
     connectOrigin();
+  };
+
+  twoPointsBtn.onClick = function () {
+    connectTwoPoints();
   };
 
   win.center();
