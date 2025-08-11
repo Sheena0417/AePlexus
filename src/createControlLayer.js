@@ -13,8 +13,14 @@ export function getOrCreateControlLayer(comp, name) {
     );
     controlLayer.adjustmentLayer = true;
     controlLayer.moveToBeginning();
-    controlLayer.enabled = false;
+    // 有効のままにして、描画には影響しないようにガイドレイヤー化
+    controlLayer.enabled = true;
+    try { controlLayer.guideLayer = true; } catch (e) {}
     controlLayer.label = 11; // セットアップ用: ラベル色
+  } else {
+    // 既存レイヤーも安全側へ
+    try { controlLayer.enabled = true; } catch (e) {}
+    try { controlLayer.guideLayer = true; } catch (e) {}
   }
 
   return controlLayer;
