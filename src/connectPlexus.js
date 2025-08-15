@@ -125,7 +125,7 @@ function buildWaveExpression(layerAName, layerBName, controlLayerName, lineId, w
 "  var waveFreq=getSlider(ctl,'Wave Frequency',50)/25;\n"+
 "  var waveSpeed=getSlider(ctl,'Wave Speed',25)/25;\n"+
 "  var waveDir=getAngle(ctl,'Wave Direction',0)*Math.PI/180;\n"+
-"  var numDiv=Math.max(3,Math.min(20,Math.round(getSlider(ctl,'Wave Divisions',20))));\n"+
+"  var numDiv=Math.max(0,Math.min(100,Math.round(getSlider(ctl,'Wave Divisions',20))));\n"+
 "  var phaseSmooth=0.6;\n"+
 "  var randomSeed=getSlider(ctl,'Random Seed',1);\n"+
 "  var intensity=getSlider(ctl,'Intensity',50)/100;\n"+
