@@ -1030,15 +1030,17 @@
       : new Window("palette", "Plexus Connector", undefined, { resizeable: true });
 
     win.orientation = "column";
-    win.alignChildren = "left";
+    win.alignChildren = ["center", "top"]; // 配列形式で明示的に指定
     win.margins = 10;
 
     // ラベル
-    win.add("statictext", undefined, "モードを選択：");
+    win.add("statictext", undefined, "Select Mode:");
 
     // 行グループ
     var row = win.add("group");
     row.orientation = "row";
+    row.alignment = ["center", "top"]; // グループ自体の配置
+    row.alignChildren = ["center", "center"]; // 子要素の配置
     row.spacing = 8;
 
     // アイコン読み込み（存在しなければ null になり、テキストボタンにフォールバック）
@@ -1082,13 +1084,18 @@
       connectTwoPoints();
     };
 
+    // レイアウトを確定
+    win.layout.layout(true);
+    
+    // ウィンドウリサイズ時のレイアウト更新
+    win.onResizing = win.onResize = function () {
+      this.layout.resize();
+    };
+
     // Panel と Window の両方に対応
     if (win instanceof Window) {
       win.center();
       win.show();
-    } else {
-      // Panel の場合は layout だけ実行
-      win.layout.layout(true);
     }
   }
 
